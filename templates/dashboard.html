@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>B2B Slots Tracking Dashboard</title>
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --success: #34a853;
+      --warn:    #fbbc04;
+      --danger:  #ea4335;
+      --bg:      #f1f3f4;
+      --card:    #ffffff;
+      --border:  #e0e0e0;
+      --text:    #202124;
+      --muted:   #5f6368;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+
+    header {
+      background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+      color: white; padding: 18px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    header .left { display: flex; align-items: center; gap: 14px; }
+    header h1 { font-size: 20px; font-weight: 600; }
+    header .badge { background: rgba(255,255,255,.2); padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+    header .sync-time { font-size: 12px; opacity: .8; }
+
+    .container { max-width: 1280px; margin: 0 auto; padding: 28px 24px; }
+
+    .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    @media(max-width:900px){ .kpi-row { grid-template-columns: repeat(2,1fr); } }
+    .kpi { background: var(--card); border-radius: 16px; padding: 24px 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); position: relative; overflow: hidden; }
+    .kpi::before { content:""; position:absolute; top:0; left:0; right:0; height:4px; border-radius:16px 16px 0 0; }
+    .kpi.blue::before   { background: #1a73e8; }
+    .kpi.green::before  { background: #34a853; }
+    .kpi.orange::before { background: #fbbc04; }
+    .kpi.indigo::before { background: #6366f1; }
+    .kpi .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+    .kpi .value { font-size: 42px; font-weight: 700; line-height: 1; }
+    .kpi.blue .value   { color: #1a73e8; }
+    .kpi.green .value  { color: #34a853; }
+    .kpi.orange .value { color: #e37400; }
+    .kpi.indigo .value { color: #6366f1; }
+    .kpi .sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    .progress-card { background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 24px; }
+    .progress-card h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+    .bar-track { background: #e8eaed; border-radius: 12px; height: 28px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 12px; display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:14px; transition: width 0.5s;}
+    .bar-labels { display:flex; justify-content:space-between; margin-top:6px; font-size:12px; color:var(--muted); }
+
+    .section-title { font-size: 16px; font-weight: 700; color: var(--text); margin: 28px 0 14px; display:flex; align-items:center; gap:8px; }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    @media(max-width:750px){ .grid2 { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; display:flex; justify-content:space-between; align-items:center;}
+    .sync-btn { background: #1a73e8; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;}
+    .sync-btn:hover { background: #0d47a1; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    th { background: #f8f9fa; text-align:left; padding:10px 12px; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; border-bottom: 2px solid var(--border); }
+    td { padding: 11px 12px; border-bottom: 1px solid #f1f3f4; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fbff; }
+
+    .pill { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+    .pill.g { background:#e6f4ea; color:#137333; }
+    .pill.y { background:#fef7e0; color:#7d5c00; }
+    .pill.r { background:#fce8e6; color:#c5221f; }
+
+    .tag { display:inline-block; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:700; text-transform: uppercase;}
+    .tag.igt { background:#e8f0fe; color:#1a73e8; }
+    .tag.igv { background:#e6f4ea; color:#137333; }
+
+    .mini-bar-wrap { display:flex; align-items:center; gap:8px; }
+    .mini-bar-bg { flex:1; background:#e8eaed; border-radius:6px; height:8px; overflow:hidden; min-width:60px; }
+    .mini-bar-fill { height:100%; border-radius:6px; transition: width 0.5s; }
+
+    /* LC Cards */
+    .lc-section { background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 24px; }
+    .lc-section h2 { font-size: 15px; font-weight: 600; margin-bottom: 20px; }
+    .lc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .lc-card { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; position:relative; overflow:hidden; }
+    .lc-card::before { content:""; position:absolute; top:0; left:0; bottom:0; width:4px; }
+    .lc-card.good::before  { background: #34a853; }
+    .lc-card.ok::before    { background: #fbbc04; }
+    .lc-card.low::before   { background: #ea4335; }
+    .lc-name { font-size: 14px; font-weight: 700; margin-bottom: 10px; padding-left: 4px; }
+    .lc-meta { display:flex; gap:6px; margin-bottom:12px; padding-left:4px; }
+    .lc-chip { text-transform: uppercase; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:600; }
+    .lc-chip.igt { background:#e8f0fe; color:#1a73e8; }
+    .lc-chip.igv { background:#e6f4ea; color:#137333; }
+    .lc-stats { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:12px; text-align:center; }
+    .lc-stat .sv { font-size:22px; font-weight:700; }
+    .lc-stat .sl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+    .lc-bar-track { background:#e8eaed; border-radius:8px; height:10px; overflow:hidden; }
+    .lc-bar-fill  { height:100%; border-radius:8px; transition: width 0.5s; }
+    .lc-rate-label { font-size:12px; font-weight:700; margin-top:5px; text-align:right; }
+
+    footer { text-align:center; color:var(--muted); font-size:12px; padding:24px; }
+    
+    .loading { opacity: 0.5; pointer-events: none; }
+    
+    /* Project Breakdown Styles */
+    .project-breakdown-card { position: relative; }
+    .project-breakdown-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text); }
+    
+    .custom-select { position: relative; width: 250px; font-family: inherit; user-select: none; }
+    .custom-select .select-selected { background-color: var(--card); padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: border-color 0.2s; }
+    .custom-select .select-selected:hover { border-color: #1a73e8; }
+    .custom-select .select-items { position: absolute; background-color: var(--card); top: 110%; left: 0; right: 0; z-index: 99; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 300px; overflow-y: auto; padding: 6px 0; }
+    .custom-select .select-items div { padding: 10px 16px; cursor: pointer; font-size: 14px; transition: background 0.2s, color 0.2s; font-weight: 500;}
+    .custom-select .select-items div:hover { background-color: #e8f0fe; color: #1a73e8; }
+    .select-hide { display: none; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="left">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+      <rect width="28" height="28" rx="8" fill="rgba(255,255,255,.2)"/>
+      <path d="M7 20l4-6 4 6 4-8 3 4" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1>B2B Slots Tracking Dashboard</h1>
+    <span class="badge">IGV · IGT</span>
+  </div>
+  <span class="sync-time" id="syncTime">Last synced: Loading...</span>
+</header>
+
+<div class="container" id="dashboardContainer">
+
+  <!-- KPI Cards -->
+  <div class="kpi-row">
+    <div class="kpi blue">
+      <div class="label">Total Slots</div>
+      <div class="value" id="kpiTotal">-</div>
+      <div class="sub">IGV + IGT combined</div>
+    </div>
+    <div class="kpi green">
+      <div class="label">Fulfilled Slots</div>
+      <div class="value" id="kpiFulfilled">-</div>
+      <div class="sub">Realised / approved TN</div>
+    </div>
+    <div class="kpi orange">
+      <div class="label">Gap</div>
+      <div class="value" id="kpiGap">-</div>
+      <div class="sub">Slots still to fill</div>
+    </div>
+    <div class="kpi indigo">
+      <div class="label">Fulfilment Rate</div>
+      <div class="value" id="kpiRate">-</div>
+      <div class="sub">fulfilled ÷ total</div>
+    </div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="progress-card">
+    <h2>Overall Fulfilment Progress (IGV + IGT)</h2>
+    <div class="bar-track">
+      <div class="bar-fill" id="mainProgress" style="width:0%;background:linear-gradient(90deg,#1a73e8,#34a853)">0%</div>
+    </div>
+    <div class="bar-labels">
+      <span>0%</span>
+      <span style="color:#e37400">⚠ Target: 80%</span>
+      <span>100%</span>
+    </div>
+  </div>
+
+  <!-- By Product -->
+  <div class="card" style="margin-bottom: 24px;">
+    <h2>
+      Overall By Product (IGV vs IGT)
+      <button class="sync-btn" onclick="triggerSync()">Sync Now</button>
+    </h2>
+    <table>
+      <thead><tr><th style="padding-left: 24px;">Product</th><th>Total</th><th>Fulfilled</th><th>Gap</th><th>Rate</th></tr></thead>
+      <tbody id="productTable">
+        <tr><td colspan="5" style="padding-left: 24px;">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- LC Rank Tables -->
+  <div class="grid2">
+    <div class="card" style="padding: 0; padding-bottom: 20px;">
+      <h2 style="padding: 24px 24px 16px;">LC Rank - IGT</h2>
+      <div style="max-height: 480px; overflow-y: auto;">
+        <table>
+          <thead><tr><th style="padding-left: 24px;">Rank</th><th>LC Name</th><th>Total</th><th>Fulfilled</th><th>Rate</th></tr></thead>
+          <tbody id="igtTable"><tr><td colspan="5" style="padding-left: 24px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" style="padding: 0; padding-bottom: 20px;">
+      <h2 style="padding: 24px 24px 16px;">LC Rank - IGV</h2>
+      <div style="max-height: 480px; overflow-y: auto;">
+        <table>
+          <thead><tr><th style="padding-left: 24px;">Rank</th><th>LC Name</th><th>Total</th><th>Fulfilled</th><th>Rate</th></tr></thead>
+          <tbody id="igvTable"><tr><td colspan="5" style="padding-left: 24px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PER LC BREAKDOWN ── -->
+  <div class="section-title">Slots by Local Committee (LC)</div>
+
+  <div class="lc-section">
+    <h2>Fulfilment Rate per LC — IGV &amp; IGT</h2>
+    <div class="lc-grid" id="lcGrid">
+      <!-- Dynamically generated LC cards go here -->
+    </div>
+  </div>
+
+  <!-- ── PER LC PROJECT BREAKDOWN ── -->
+  <div class="section-title">Deep Dive: LC Project Breakdown</div>
+
+  <div class="card project-breakdown-card" style="margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h2 style="margin: 0;">Select LC to View Breakdown</h2>
+      
+      <div class="custom-select" id="lcCustomSelect">
+        <div class="select-selected">-- Select an LC -- <span style="font-size:10px;color:var(--muted)">▼</span></div>
+        <div class="select-items select-hide" id="lcSelectItems"></div>
+      </div>
+    </div>
+    
+    <div id="projectBreakdownContent" style="display: none;" class="grid2">
+      <!-- Left side: Table -->
+      <div>
+        <h3>Project List</h3>
+        <table style="margin-top: 12px;">
+          <thead>
+            <tr><th style="padding-left: 16px;">Project</th><th>Product</th><th>Slots</th><th>%</th></tr>
+          </thead>
+          <tbody id="projectTableBody">
+            <!-- populated by js -->
+          </tbody>
+        </table>
+      </div>
+      <!-- Right side: Chart -->
+      <div style="display: flex; justify-content: center; align-items: center; min-height: 250px;">
+        <canvas id="projectChart" style="max-height: 280px; max-width: 100%;"></canvas>
+      </div>
+    </div>
+    <div id="projectBreakdownEmpty" style="color: var(--muted); padding: 24px 0; text-align: center; background: #f8f9fa; border-radius: 12px; margin-top: 16px;">
+      Please select an LC from the dropdown above to view its projects.
+    </div>
+  </div>
+
+</div>
+
+<footer>Mohamed Eltwapty IM</footer>
+
+<script>
+  function getPillClass(pct) {
+    if (pct >= 50) return 'g';
+    return 'r';
+  }
+  
+  function getPillColor(pct) {
+    if (pct >= 50) return '#34a853'; // green
+    return '#ea4335'; // red
+  }
+  
+  function getCardClass(pct) {
+    if (pct >= 50) return 'good';
+    return 'low';
+  }
+
+  async function loadDashboard() {
+    try {
+      const res = await fetch('/api/dashboard/');
+      const data = await res.json();
+      
+      if (!data.summary) return;
+
+      // Update sync time
+      document.getElementById('syncTime').textContent = 'Last computed: ' + new Date(data.computed_at).toLocaleString();
+
+      // Update KPIs
+      document.getElementById('kpiTotal').textContent = data.summary.total_slots;
+      document.getElementById('kpiFulfilled').textContent = data.summary.fulfilled_slots;
+      document.getElementById('kpiGap').textContent = data.summary.gap;
+      document.getElementById('kpiRate').textContent = data.summary.fulfilment_pct + '%';
+      
+      // Update Main Progress
+      const pg = document.getElementById('mainProgress');
+      pg.style.width = data.summary.fulfilment_pct + '%';
+      pg.textContent = data.summary.fulfilment_pct + '%';
+
+      // Update By Product
+      let pRows = '';
+      for (const [prod, stats] of Object.entries(data.by_product)) {
+        pRows += `
+          <tr>
+            <td style="padding-left: 24px;"><span class="tag ${prod.toLowerCase()}">${prod}</span></td>
+            <td>${stats.total_slots}</td>
+            <td>${stats.fulfilled_slots}</td>
+            <td>${stats.gap}</td>
+            <td style="padding-right: 24px;">
+              <div class="mini-bar-wrap">
+                <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${stats.fulfilment_pct}%;background:${getPillColor(stats.fulfilment_pct)}"></div></div>
+                <span class="pill ${getPillClass(stats.fulfilment_pct)}">${stats.fulfilment_pct}%</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+      document.getElementById('productTable').innerHTML = pRows;
+
+      // Render LC Rank Tables
+      function renderTable(tbodyId, list) {
+        let rows = '';
+        if (list && list.length > 0) {
+          list.forEach((lc, i) => {
+            rows += `
+              <tr>
+                <td style="padding-left: 24px; color: var(--muted); font-weight: 600;">#${i+1}</td>
+                <td><strong style="color: var(--text)">${lc.lc_name}</strong></td>
+                <td>${lc.total_slots}</td>
+                <td>${lc.fulfilled_slots}</td>
+                <td style="padding-right: 24px;"><span class="pill ${getPillClass(lc.fulfilment_pct)}">${lc.fulfilment_pct}%</span></td>
+              </tr>
+            `;
+          });
+        } else {
+          rows = '<tr><td colspan="5" style="padding-left: 24px; color: var(--muted)">No data available.</td></tr>';
+        }
+        document.getElementById(tbodyId).innerHTML = rows;
+      }
+      
+      renderTable('igtTable', data.lc_breakdown_igt);
+      renderTable('igvTable', data.lc_breakdown_igv);
+
+      // Update LC Cards
+      if (data.lc_breakdown && data.lc_breakdown.length > 0) {
+        let lcHtml = '';
+        data.lc_breakdown.forEach(lc => {
+          let chips = '';
+          lc.products.forEach(p => {
+            chips += `<span class="lc-chip ${p.toLowerCase()}">${p}</span>`;
+          });
+          
+          lcHtml += `
+            <div class="lc-card ${getCardClass(lc.fulfilment_pct)}">
+              <div class="lc-name">${lc.lc_name}</div>
+              <div class="lc-meta">${chips}</div>
+              <div class="lc-stats">
+                <div class="lc-stat"><div class="sv" style="color:#1a73e8">${lc.total_slots}</div><div class="sl">Total</div></div>
+                <div class="lc-stat"><div class="sv" style="color:#34a853">${lc.fulfilled_slots}</div><div class="sl">Fulfilled</div></div>
+                <div class="lc-stat"><div class="sv" style="color:#ea4335">${lc.gap}</div><div class="sl">Gap</div></div>
+              </div>
+              <div class="lc-bar-track"><div class="lc-bar-fill" style="width:${lc.fulfilment_pct}%;background:${getPillColor(lc.fulfilment_pct)}"></div></div>
+              <div class="lc-rate-label" style="color:${getPillColor(lc.fulfilment_pct)}">${lc.fulfilment_pct}%</div>
+            </div>
+          `;
+        });
+        document.getElementById('lcGrid').innerHTML = lcHtml;
+      } else {
+        document.getElementById('lcGrid').innerHTML = '<p style="color:var(--muted)">No LC data found in the Google Sheets yet.</p>';
+      }
+
+      // Populate LC Project Breakdown Dropdown
+      globalProjectData = data.lc_projects_breakdown || {};
+      populateLcSelect(globalProjectData);
+
+    } catch (e) {
+      console.error(e);
+      document.getElementById('syncTime').textContent = 'Error loading dashboard.';
+    }
+  }
+
+  let projectChartInstance = null;
+  let globalProjectData = {};
+
+  // Close custom dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+      if (!e.target.closest('.custom-select')) {
+          const items = document.getElementById('lcSelectItems');
+          if (items) items.classList.add('select-hide');
+      }
+  });
+
+  function populateLcSelect(projectData) {
+      const itemsDiv = document.getElementById('lcSelectItems');
+      const selectedDiv = document.querySelector('.select-selected');
+      itemsDiv.innerHTML = '';
+      
+      selectedDiv.onclick = function(e) {
+          e.stopPropagation();
+          itemsDiv.classList.toggle('select-hide');
+      };
+
+      const lcs = Object.keys(projectData).sort();
+      lcs.forEach(lc => {
+          const opt = document.createElement('div');
+          opt.textContent = lc;
+          opt.addEventListener('click', function(e) {
+              e.stopPropagation();
+              selectedDiv.innerHTML = lc + ' <span style="font-size:10px;color:var(--muted)">▼</span>';
+              itemsDiv.classList.add('select-hide');
+              renderProjectBreakdown(lc);
+          });
+          itemsDiv.appendChild(opt);
+      });
+  }
+
+  function renderProjectBreakdown(lcName) {
+      const content = document.getElementById('projectBreakdownContent');
+      const empty = document.getElementById('projectBreakdownEmpty');
+      const tbody = document.getElementById('projectTableBody');
+      
+      if (!lcName || !globalProjectData[lcName]) {
+          content.style.display = 'none';
+          empty.textContent = 'Please select an LC from the dropdown above to view its projects.';
+          empty.style.display = 'block';
+          return;
+      }
+      
+      if (globalProjectData[lcName].length === 0) {
+          content.style.display = 'none';
+          empty.innerHTML = `<strong style="color:var(--text)">${lcName}</strong> has 0 slots across all projects.`;
+          empty.style.display = 'block';
+          return;
+      }
+      
+      content.style.display = 'grid'; // Uses .grid2 display: grid
+      empty.style.display = 'none';
+      
+      const projects = globalProjectData[lcName];
+      let totalSlots = 0;
+      projects.forEach(p => totalSlots += p.slots);
+      
+      // Sort projects by slots descending
+      projects.sort((a,b) => b.slots - a.slots);
+      
+      let rows = '';
+      const chartLabels = [];
+      const chartData = [];
+      const chartColors = [];
+      
+      // A premium color palette
+      const colors = ['#1a73e8', '#34a853', '#fbbc04', '#ea4335', '#6366f1', '#e83e8c', '#fd7e14', '#20c997', '#6f42c1', '#0dcaf0'];
+      
+      projects.forEach((p, i) => {
+          const pct = totalSlots > 0 ? ((p.slots / totalSlots) * 100).toFixed(1) : 0;
+          rows += `
+              <tr>
+                  <td style="padding-left: 16px;"><strong>${p.name}</strong></td>
+                  <td><span class="tag ${p.product.toLowerCase()}">${p.product}</span></td>
+                  <td>${p.slots}</td>
+                  <td><span style="color:var(--muted); font-size: 12px; font-weight: 600;">${pct}%</span></td>
+              </tr>
+          `;
+          chartLabels.push(p.name + ' (' + p.product + ')');
+          chartData.push(p.slots);
+          chartColors.push(colors[i % colors.length]);
+      });
+      
+      tbody.innerHTML = rows;
+      
+      // Render Chart
+      const ctx = document.getElementById('projectChart').getContext('2d');
+      if (projectChartInstance) {
+          projectChartInstance.destroy();
+      }
+      
+      projectChartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+              labels: chartLabels,
+              datasets: [{
+                  data: chartData,
+                  backgroundColor: chartColors,
+                  borderWidth: 0,
+                  hoverOffset: 6
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: '65%',
+              plugins: {
+                  legend: {
+                      position: 'right',
+                      labels: { boxWidth: 12, font: { size: 11, family: "'Segoe UI', Roboto, sans-serif" } }
+                  },
+                  tooltip: {
+                      callbacks: {
+                          label: function(context) {
+                              let label = context.label || '';
+                              if (label) { label += ': '; }
+                              if (context.parsed !== null) {
+                                  let p = ((context.parsed / totalSlots) * 100).toFixed(1);
+                                  label += context.parsed + ' slots (' + p + '%)';
+                              }
+                              return label;
+                          }
+                      }
+                  }
+              }
+          }
+      });
+  }
+
+  async function triggerSync() {
+    const container = document.getElementById('dashboardContainer');
+    container.classList.add('loading');
+    document.getElementById('syncTime').textContent = 'Syncing... Please wait...';
+    try {
+      await fetch('/api/sync/', { method: 'POST' });
+      await loadDashboard();
+    } catch (e) {
+      alert("Failed to sync: " + e);
+    }
+    container.classList.remove('loading');
+  }
+
+  // Load right away
+  loadDashboard();
+</script>
+</body>
+</html>
